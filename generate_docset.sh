@@ -1,7 +1,7 @@
 #!/bin/sh
 # build-chapel-docset-wget.sh
-# Genera un docset de Zeal/Dash para Chapel 2.6 descargando la documentación HTML con wget.
-# Compatible con FreeBSD, sin necesidad de Sphinx, pip ni Python.
+# Generate Zeal/Dash docset for Chapel 2.6 downloading HTML documentation with wget.
+# FreeBSD compatible, no external app needed (No Sphinx no Python)
 
 set -eu
 
@@ -25,13 +25,13 @@ for cmd in wget sqlite3 awk sed tar; do
   fi
 done
 
-# --- Preparar estructura ---
-msg "Preparando estructura..."
+# --- Prepare structure ---
+msg "Creating structure..."
 rm -rf "$WORK_DIR"
 mkdir -p "$DOCSET_DOCS"
 
-# --- Descargar documentación con wget ---
-msg "Descargando documentación de Chapel $CHPL_VERSION..."
+# --- Download documentation with wget ---
+msg "Downloading Chapel $CHPL_VERSION documentation ..."
 cd "$WORK_DIR"
 
 wget --mirror \
@@ -44,14 +44,14 @@ wget --mirror \
      --domains=chapel-lang.org \
      "$BASE_URL/"
 
-# A veces wget crea un árbol con chapel-lang.org/docs, lo reubicamos:
+# Sometimmes, wgets create file tree with  chapel-lang.org/docs, move it to rigth pwd:
 if [ -d "$DOCSET_DOCS/chapel-lang.org/docs" ]; then
   mv "$DOCSET_DOCS/chapel-lang.org/docs"/* "$DOCSET_DOCS"/
   rm -rf "$DOCSET_DOCS/chapel-lang.org"
 fi
 
-# --- Crear Info.plist ---
-msg "Creando Info.plist..."
+# --- Create Info.plist ---
+msg "Buildind Info.plist..."
 mkdir -p "$(dirname "$DOCSET_PLIST")"
 cat > "$DOCSET_PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -72,8 +72,8 @@ cat > "$DOCSET_PLIST" <<EOF
 </plist>
 EOF
 
-# --- Crear índice SQLite ---
-msg "Creando índice de búsqueda..."
+# --- Indexing with SQLite ---
+msg "Indexing ..."
 mkdir -p "$DOCSET_RES"
 sqlite3 "$DOCSET_DB" <<'SQL'
 CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT);
@@ -109,21 +109,21 @@ find "$DOCSET_DOCS" -type f -name '*.html' | while read -r f; do
   sqlite3 "$DOCSET_DB" "INSERT OR IGNORE INTO searchIndex(name,type,path) VALUES('$title','$type','$relpath');" 2>/dev/null || true
 done
 
-# --- Verificación ---
-msg "Verificando index.html..."
+# --- Verify ---
+msg "Verifying index.html..."
 if [ ! -f "$DOCSET_DOCS/index.html" ]; then
   echo '<meta http-equiv="refresh" content="0; url=usingchapel/index.html">' > "$DOCSET_DOCS/index.html"
 fi
 
-# --- Empaquetar ---
-msg "Empaquetando docset..."
+# --- Compact ---
+msg "Compressing docset..."
 cd "$WORK_DIR"
 tar --exclude='.DS_Store' -czf "Chapel-$CHPL_VERSION.tgz" "$DOCSET_NAME"
 
-msg "✅ Docset completado:"
+msg "Docset done:"
 echo "   $DOCSET_DIR"
 echo "   $WORK_DIR/Chapel-$CHPL_VERSION.tgz"
 echo
-echo "Para usarlo en Zeal:"
+echo "For use in Zeal:"
 echo "   cp -r $DOCSET_DIR ~/.local/share/Zeal/Zeal/docsets/"
-echo "   # o importar el .tgz desde Zeal → File → Import Docset"
+echo "   # or import .tgz from Zeal -> File -> Import Docset"
